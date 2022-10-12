@@ -19,8 +19,9 @@ class Test(obja.Model):
         Compressionne un obj en obja.
         """
         sommets = [6,7] # sommets 7 et 8 du mesh
-        patch = self.find_patches(sommets)
+        (patch, faces) = self.find_patches(sommets)
         print(patch)
+        print(faces)
         
         
     def sort_patch_rec(self, list_faces, del_vert, vert_prec):
@@ -49,10 +50,12 @@ class Test(obja.Model):
         
         arguments : - liste d'indices de sommets (au milieu des patchs) à supprimer
         
-        retour :    - patches : liste des patchs (liste de liste d'indices de sommets)   
+        retour :    - patches : liste des patchs (liste de liste d'indices de sommets)  
+                    - faces_in_the_patches : liste des faces dans les patchs (liste de liste de faces) 
         """
         patches = []
         temp_faces_list = []
+        faces_in_the_patches = []
         
         
         # Iterate through the vertices to delete
@@ -63,34 +66,41 @@ class Test(obja.Model):
             for face in self.faces:
                 if vert_index in [face.a, face.b, face.c]:
                     temp_faces_list.append(face)
-                    print([face.a, face.b, face.c])
-            print(len(temp_faces_list))
+            
+            faces_in_the_patches.append(list(temp_faces_list))
+
 
             if vert_index == temp_faces_list[0].a:
-                vertex_to_store = temp_faces_list[0].b
                 next_vertex = temp_faces_list[0].c
             elif vert_index == temp_faces_list[1].b:
-                vertex_to_store = temp_faces_list[0].c
                 next_vertex = temp_faces_list[0].a
             else:
-                vertex_to_store = temp_faces_list[0].a
                 next_vertex = temp_faces_list[0].b
             
             patch = self.sort_patch_rec(temp_faces_list, vert_index, next_vertex)
             
             patches.append(patch)
         
-        return patches
+        return (patches, faces_in_the_patches)
             
-def trace_Z(self, patches):
+def trace_Z(self, patches, vertices_to_delete):
     """
     Fonction qui effectue les modification sur le mesh. Plus précisément supprime les
     points des milieus de patchs et trace les Z.
     
     arguments : - liste des patchs (liste de liste d'indices de sommets de contour)
+                - liste des sommets a supprimer (liste d'indices de sommets)
+                - liste des faces dans les patchs (liste de liste de face)
     
     retour :    - liste des opérations à effectuer (list de string)   
-    """              
+    """        
+    operations = []      
+    
+    for i in range(len(patches)):
+        
+        # Deleting the vertex in the middle of the patch
+        
+        
                             
                             
                 
