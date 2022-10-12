@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import obja
 import numpy as np
 import sys
@@ -57,9 +58,9 @@ def main():
     """
     np.seterr(invalid = 'raise')
     model = Decimater()
-    model.parse_file('example/suzanne.obj')
+    model.parse_file(os.path('example','suzanne.obj'))
 
-    with open('example/suzanne.obja', 'w') as output:
+    with open(os.path('example','suzanne.obja'), 'w') as output:
         model.contract(output)
 
 
