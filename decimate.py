@@ -72,9 +72,10 @@ class Decimater(obja.Model):
                 ind = np.argmin(valeurs_propres)
                 # Vecteur propre associé à la plus petite valeur propre
                 X = vecteurs_propres[:, ind]
-                # Calcul de
+                # Calcul de la normale
                 n = np.array(X[0:3])
                 # Calcul de la distance entre le sommet courant (vertex) et le plan moyen
+                # CP : pourquoi la norme du sommet au lieu de la norme de n ?
                 k = (- X[3] - n.transpose * vertex) / np.linalg.norm(vertex)
                 # Mémorise la distance du sommet courant et du plan moyen
                 distances.append(abs(k))
