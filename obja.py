@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+from os import path
 import sys
 import numpy as np
 import random
@@ -297,11 +297,11 @@ class Output:
             print('ev {} {} {} {}'.format(self.vertex_mapping[index] + 1, vertex[0], vertex[1], vertex[2]),
                   file=self.output)
             
-    def del_face(self, index, vertex):
+    def del_face(self, index):
         """
         Deletes a face from the model
         """
-        if len(self.)
+        print('df {}'.format(index + 1), file=self.output)
 
     def add_face(self, index, face):
         """

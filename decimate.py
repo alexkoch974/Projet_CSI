@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import obja
 import numpy as np
 import sys
@@ -144,6 +143,7 @@ class Decimater(obja.Model):
 
         # To rebuild the model, run operations in reverse order
         operations.reverse()
+        print(operations)
 
         # Write the result in output file
         output_model = obja.Output(output, random_color=True)
@@ -162,9 +162,9 @@ def main():
     """
     np.seterr(invalid = 'raise')
     model = Decimater()
-    model.parse_file(os.path('example','suzanne.obj'))
+    model.parse_file('example/test.obj')
 
-    with open(os.path('example','suzanne.obja'), 'w') as output:
+    with open('example/test.obja', 'w') as output:
         model.contract(output)
 
 
