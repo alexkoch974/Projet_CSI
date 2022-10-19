@@ -55,12 +55,20 @@ class Test(obja.Model):
         if list_faces == []:
             return []
         else:
+            # Pour chaque facette
             for f in list_faces:
+                # liste des sommets de la facette courante
                 verts_f = [f.a, f.b, f.c]
+                # si le sommet à supprimer fait parti de la facette courante
+                # et le sommet précédent fait aussi parti de la facette courante
                 if del_vert in verts_f and vert_prec in verts_f:
+                    # Pour chaque sommet de la facette courante
                     for v in verts_f:
+                        # Si le sommet courant n'est pas le sommet à supprimer ni le sommet précédent
                         if v != del_vert and v != vert_prec:
+                            # Suppression de la facette courante
                             list_faces.remove(f)
+                            # Ajout du sommet courant dans le liste des sommets du patch
                             return [v] + self.sort_patch_rec(list_faces, del_vert, v)
                     
     def find_patches(self, vertices_to_delete):
@@ -75,32 +83,40 @@ class Test(obja.Model):
                     - faces_in_the_patches : liste des faces dans les patchs (liste de liste de faces) 
         """
         patches = []
+        # liste intermédiaire de facettes
         temp_faces_list = []
+        # facettes du patch
         faces_in_the_patches = []
         
         
         # Iterate through the vertices to delete
-        for i in range(len(vertices_to_delete)):   
-            vert_index = vertices_to_delete[i]
-            faces_in_the_patches.append([])           
+        # ----------- TODO : check avec Kuremon pour avoir des index
+        for vert_index in vertices_to_delete:   
             
             # Iterate through the faces and store them temporarily
-            for j in range(len(self.faces)):
-                face = self.faces[j]
+            for face in self.faces:
                 if vert_index in [face.a, face.b, face.c]:
+                    # Ajout de la facette courante dans la liste intermédiaire
                     temp_faces_list.append(face)
-                    faces_in_the_patches[i].append(j)
             
+            faces_in_the_patches.append(list(temp_faces_list))
+
 
             if vert_index == temp_faces_list[0].a:
+                # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0].c
-            elif vert_index == temp_faces_list[1].b:
+            # Si le sommet courant est le second de la première facette
+            elif vert_index == temp_faces_list[0].b: # 1 remplacé par 0 (CP)
+                # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0].a
             else:
+                # le précédent est le second de la première facette
                 next_vertex = temp_faces_list[0].b
-            
+
+            # construit la liste des sommets du patch
             patch = self.sort_patch_rec(temp_faces_list, vert_index, next_vertex)
-            
+
+            # ajoute la liste des sommets du patch à la liste des patchs
             patches.append(patch)
         
         return (patches, faces_in_the_patches)
@@ -263,4 +279,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-        
