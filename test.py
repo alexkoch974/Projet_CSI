@@ -15,34 +15,39 @@ class Test(obja.Model):
     
     def __init__(self):
         super().__init__()
-        self.deleted_faces = set()
         
     def compressionne(self,output):
         """
         Compressionne un obj en obja.
         """
-        # sommets = [6] # sommet 7 du mesh
+        # sommets = [6] # sommet 7 du mesh test.py
+        # sommets = [75] # patch 76 317 355 303 354 316 pour suzanne
         sommets = decimation(self)
-        print(sommets)
         (patch, faces) = self.find_patches(sommets)
-        print(patch)
-        print(faces)
-        op = trace_Z(self, patch, faces)
-        print(op)
-        op.reverse()
-        
+        op = trace_Z(self, patch, faces, sommets)
         output_model = obja.Output(output, random_color=True)
 
-        for i in patch:
-            for j in i:
-                op.append(("vertex",j,self.vertices[j]))
-                output_model.add_vertex(j,self.vertices[j])
-                        
-        for (ty, value, index) in op:
-            if ty == "df":
-                output_model.del_face(index)
-            elif ty == "af":
-                output_model.add_face(index,value)
+        for (index, face) in enumerate(self.faces):
+            if face is not None:
+                op.append(('af', index, face))
+        for (index, vertex) in enumerate(self.vertices):
+            if vertex is not None:
+                op.append(('av', index, vertex))
+                
+        op.reverse()
+        for (ty, index, value) in op:
+            print((ty, index, value))
+        
+        for (ty, index, value) in op:
+            if ty == 'av':
+                output_model.add_vertex(index, value)
+            elif ty == 'af':
+                output_model.add_face(index, value)
+            elif ty == 'ef':
+                output_model.edit_face(index, value)
+        
+        
+
         
         
     def sort_patch_rec(self, list_faces, del_vert, vert_prec):
@@ -56,7 +61,8 @@ class Test(obja.Model):
             return []
         else:
             # Pour chaque facette
-            for f in list_faces:
+            for ind in range(len(list_faces)):
+                (f,_) = list_faces[ind]
                 # liste des sommets de la facette courante
                 verts_f = [f.a, f.b, f.c]
                 # si le sommet à supprimer fait parti de la facette courante
@@ -67,7 +73,7 @@ class Test(obja.Model):
                         # Si le sommet courant n'est pas le sommet à supprimer ni le sommet précédent
                         if v != del_vert and v != vert_prec:
                             # Suppression de la facette courante
-                            list_faces.remove(f)
+                            list_faces.pop(ind)
                             # Ajout du sommet courant dans le liste des sommets du patch
                             return [v] + self.sort_patch_rec(list_faces, del_vert, v)
                     
@@ -94,24 +100,25 @@ class Test(obja.Model):
         for vert_index in vertices_to_delete:   
             
             # Iterate through the faces and store them temporarily
-            for face in self.faces:
+            for i in range(len(self.faces)):
+                face = self.faces[i]
                 if vert_index in [face.a, face.b, face.c]:
                     # Ajout de la facette courante dans la liste intermédiaire
-                    temp_faces_list.append(face)
+                    temp_faces_list.append((face,i))
             
             faces_in_the_patches.append(list(temp_faces_list))
 
 
-            if vert_index == temp_faces_list[0].a:
+            if vert_index == temp_faces_list[0][0].a:
                 # le précédent est le dernier de la première facette
-                next_vertex = temp_faces_list[0].c
-            # Si le sommet courant est le second de la première facette
-            elif vert_index == temp_faces_list[0].b: # 1 remplacé par 0 (CP)
+                next_vertex = temp_faces_list[0][0].c
+                # Si le sommet courant est le second de la première facette
+            elif vert_index == temp_faces_list[1][0].b: # 1 remplacé par 0 (CP)
                 # le précédent est le dernier de la première facette
-                next_vertex = temp_faces_list[0].a
+                next_vertex = temp_faces_list[0][0].a
             else:
                 # le précédent est le second de la première facette
-                next_vertex = temp_faces_list[0].b
+                next_vertex = temp_faces_list[0][0].b
 
             # construit la liste des sommets du patch
             patch = self.sort_patch_rec(temp_faces_list, vert_index, next_vertex)
@@ -120,47 +127,66 @@ class Test(obja.Model):
             patches.append(patch)
         
         return (patches, faces_in_the_patches)
-            
-def trace_Z(self, patches, faces_in_the_patches):
+
+
+def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete):
     """
     Fonction qui effectue les modification sur le mesh. Plus précisément supprime les
     points des milieus de patchs et trace les Z.
     
     arguments : - liste des patchs (liste de liste d'indices de sommets de contour)
-                - liste des faces dans les patchs (liste de liste de face)
+                - liste des faces dans les patchs (liste de liste de tuples (face,indice) )
+                - liste des sommets au milieu des patchs à supprimer (liste d'indices de sommets)
     
     retour :    - liste des opérations à effectuer (list de string)   
-    """        
-    operations = []      
-    
+    """   
+    operations = []
     for i in range(len(patches)):
-        
-        index = len(self.faces) - 1
-        
-        # Deleting the vertex in the middle of the patch by deleting all its related faces
-        for face in faces_in_the_patches[i]:
-            operations.append(('df', face, face))
-        
-        n =  len(patches[i]) - 2
-        a = -1
-        b_ind = 0
-        c = 1
-        face = obja.Face(patches[i][a],patches[i][b_ind],patches[i][c])
-        index += 1
-        operations.append(('af', face, index))
-        for j in range(2,n+1):
-            if (j/2) == math.floor(j/2):
-                b_ind += 1
-                c += 1
+        patch = patches[i]
+        #supprimer deux faces en face l'une de l'autre
+        n2 = math.floor(len(faces_in_the_patches[i])/2)
+        operations.append(('af', 0, faces_in_the_patches[i][0][0]))
+        self.faces[0] = None
+        operations.append(('af', n2, faces_in_the_patches[i][n2][0]))
+        self.faces[n2] = None
+        vert_del = vertices_to_delete[i]
+        for j in range(len(faces_in_the_patches[i])):
+            (face, index) = faces_in_the_patches[i][j]
+            if self.faces[index] == None:
+                continue
+            # modifier les n-2 faces restantes
+            if vert_del == face.a:
+                if face.b == 0 | face.b == n2:
+                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                else:
+                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
+                operations.append(('ef', index, face))
+                self.faces[index] = new_face
+            elif vert_del == face.b:
+                if face.c == 0 | face.c == n2:
+                    new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
+                else:
+                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                operations.append(('ef', index, face))
+                self.faces[index] = new_face
             else:
-                a -= 1
-            b = pow((-1),j) * b_ind
+                if face.a == 0 | face.a == n2:
+                    new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
+                else:
+                    new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
+                operations.append(('ef', index, face))
+                self.faces[index] = new_face
             
-            face = obja.Face(patches[i][a],patches[i][b],patches[i][c])
-            index += 1
-            operations.append(('af', face, index))
-            
+        # supprimer le sommet du milieu du patch        
+        operations.append(('av', vert_del, self.vertices[vert_del]))
+        self.vertices[vert_del] = None
+        
     return operations
+        
+        
+        
+    
+
                             
        
 def decimation(self):
@@ -238,7 +264,7 @@ def decimation(self):
         # Construit la liste des indices par ordre décroissant de distance
         indices_tries = [i[0] for i in sorted(enumerate(distances), key=lambda x:x[1], reverse=True)]
         # distance seuil égale à 90% de la distance maximale 
-        d0 = 0.9 * distances[indices_tries[0]]
+        d0 = 0.75 * distances[indices_tries[0]]
         # Si un sommet d'une facette est supprimé, il faut conserver les autres sommets de la facette
         dont_touch = []
         # Parcours des indices des sommets triés par distance
@@ -247,9 +273,7 @@ def decimation(self):
         # Définition de la liste des sommets supprimés 
         deleted_vertices = []
         # Recherche d'un sommet dont la distance est inférieure à d0
-        print(indices_tries)
-        print(len(distances))
-        while distances[indices_tries[i]] > d0 and i < len(indices_tries):
+        while i < len(indices_tries) and distances[indices_tries[i]] > d0 :
             # Si le sommet courant peut être supprimé
             if index_vertices[indices_tries[i]] not in dont_touch:
                 # ajout du sommet supprimé à la liste des suppressions
@@ -271,9 +295,9 @@ def main():
     """
     np.seterr(invalid = 'raise')
     model = Test()
-    model.parse_file('example/test.obj')
+    model.parse_file('example/suzanne.obj')
 
-    with open('example/test.obja', 'w') as output:
+    with open('example/suzanne.obja', 'w') as output:
         model.compressionne(output)
     
 

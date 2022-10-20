@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from os import path
+
 import sys
 import numpy as np
 import random
@@ -22,7 +22,7 @@ class Face:
 
     def from_array(array):
         """
-        Initializes a face from an array of strings representing vector indices (starting at 1)
+        Initializes a face from an array of strings representing vertex indices (starting at 1)
         """
         face = Face(0, 0, 0)
         face.set(array)
@@ -31,7 +31,7 @@ class Face:
 
     def set(self, array):
         """
-        Sets a face from an array of strings representing vector indices (starting at 1)
+        Sets a face from an array of strings representing vertex indices (starting at 1)
         """
         self.a = int(array[0].split('/')[0]) - 1
         self.b = int(array[1].split('/')[0]) - 1
@@ -89,7 +89,7 @@ class VertexError(Exception):
         """
         Pretty prints the error.
         """
-        return f'There is no vector {self.index} (line {self.line})'
+        return f'There is no vertex {self.index} (line {self.line})'
 
 
 class FaceError(Exception):
@@ -114,12 +114,12 @@ class FaceError(Exception):
 
 class FaceVertexError(Exception):
     """
-    An operation references a face vector that does not exist.
+    An operation references a face vertex that does not exist.
     """
 
     def __init__(self, index, line):
         """
-        Creates the error from index of the referenced face vector and the line where the error occured.
+        Creates the error from index of the referenced face vertex and the line where the error occured.
         """
         self.line = line
         self.index = index
@@ -129,7 +129,7 @@ class FaceVertexError(Exception):
         """
         Pretty prints the error.
         """
-        return f'Face has no vector {self.index} (line {self.line})'
+        return f'Face has no vertex {self.index} (line {self.line})'
 
 
 class UnknownInstruction(Exception):
@@ -165,11 +165,11 @@ class Model:
         self.faces = []
         self.line = 0
 
-    def get_vector_from_string(self, string):
+    def get_vertex_from_string(self, string):
         """
-        Gets a vector from a string representing the index of the vector, starting at 1.
+        Gets a vertex from a string representing the index of the vertex, starting at 1.
 
-        To get the vector from its index, simply use model.vertices[i].
+        To get the vertex from its index, simply use model.vertices[i].
         """
         index = int(string) - 1
         if index >= len(self.vertices):
@@ -210,10 +210,10 @@ class Model:
             self.vertices.append(np.array(split[1:], np.double))
 
         elif split[0] == "ev":
-            self.get_vector_from_string(split[1]).set(split[2:])
+            self.get_vertex_from_string(split[1]).set(split[2:])
 
         elif split[0] == "tv":
-            self.get_vector_from_string(split[1]).translate(split[2:])
+            self.get_vertex_from_string(split[1]).translate(split[2:])
 
         elif split[0] == "f" or split[0] == "tf":
             for i in range(1, len(split) - 2):
@@ -235,16 +235,16 @@ class Model:
 
         elif split[0] == "efv":
             face = self.get_face_from_string(split[1])
-            vector = int(split[2])
+            vertex = int(split[2])
             new_index = int(split[3]) - 1
-            if vector == 1:
+            if vertex == 1:
                 face.a = new_index
-            elif vector == 2:
+            elif vertex == 2:
                 face.b = new_index
-            elif vector == 3:
+            elif vertex == 3:
                 face.c = new_index
             else:
-                raise FaceVertexError(vector, self.line)
+                raise FaceVertexError(vertex, self.line)
 
         elif split[0] == "df":
             self.get_face_from_string(split[1]).visible = False
@@ -296,12 +296,6 @@ class Output:
         else:
             print('ev {} {} {} {}'.format(self.vertex_mapping[index] + 1, vertex[0], vertex[1], vertex[2]),
                   file=self.output)
-            
-    def del_face(self, index):
-        """
-        Deletes a face from the model
-        """
-        print('df {}'.format(index + 1), file=self.output)
 
     def add_face(self, index, face):
         """
