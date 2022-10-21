@@ -2,6 +2,7 @@
 
 # from ssl import VERIFY_X509_PARTIAL_CHAIN
 from dis import dis
+from hashlib import new
 from re import A
 import obja
 import numpy as np
@@ -22,10 +23,26 @@ class Test(obja.Model):
         """
         # sommets = [6] # sommet 7 du mesh test.py
         # sommets = [75] # patch 76 317 355 303 354 316 pour suzanne
-        sommets = decimation(self)
-        (patch, faces) = self.find_patches(sommets)
-        op = trace_Z(self, patch, faces, sommets)
-        output_model = obja.Output(output, random_color=True)
+        nb_vert_init = len(self.vertices)
+        op = []
+        
+        while len(self.vertices)/nb_vert_init >= 0.1:
+            sommets = decimation(self)
+            (patch, faces) = self.find_patches(sommets)
+            print(self.faces[413])
+            op = trace_Z(self, patch, faces, sommets, op)
+            output_model = obja.Output(output, random_color=True)
+            
+            for (index, face) in enumerate(self.faces):
+                if face is None:
+                    self.faces.pop(index)
+            for (index, vertex) in enumerate(self.vertices):
+                if vertex is None:
+                    self.vertices.pop(index)
+            
+                    
+
+
 
         for (index, face) in enumerate(self.faces):
             if face is not None:
@@ -33,10 +50,10 @@ class Test(obja.Model):
         for (index, vertex) in enumerate(self.vertices):
             if vertex is not None:
                 op.append(('av', index, vertex))
-                
+        
+        
         op.reverse()
-        for (ty, index, value) in op:
-            print((ty, index, value))
+        
         
         for (ty, index, value) in op:
             if ty == 'av':
@@ -129,7 +146,7 @@ class Test(obja.Model):
         return (patches, faces_in_the_patches)
 
 
-def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete):
+def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations):
     """
     Fonction qui effectue les modification sur le mesh. Plus précisément supprime les
     points des milieus de patchs et trace les Z.
@@ -140,42 +157,42 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete):
     
     retour :    - liste des opérations à effectuer (list de string)   
     """   
-    operations = []
     for i in range(len(patches)):
         patch = patches[i]
         #supprimer deux faces en face l'une de l'autre
         n2 = math.floor(len(faces_in_the_patches[i])/2)
         operations.append(('af', 0, faces_in_the_patches[i][0][0]))
-        self.faces[0] = None
+        ind_to_del = self.faces.index(faces_in_the_patches[i][0][0])
+        self.faces[ind_to_del] = None
         operations.append(('af', n2, faces_in_the_patches[i][n2][0]))
-        self.faces[n2] = None
+        ind_to_del = self.faces.index(faces_in_the_patches[i][n2][0])
+        self.faces[ind_to_del] = None
         vert_del = vertices_to_delete[i]
         for j in range(len(faces_in_the_patches[i])):
             (face, index) = faces_in_the_patches[i][j]
-            if self.faces[index] == None:
-                continue
-            # modifier les n-2 faces restantes
-            if vert_del == face.a:
-                if face.b == 0 | face.b == n2:
-                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+            if self.faces[index] != None:
+                # modifier les n-2 faces restantes
+                if vert_del == face.a:
+                    if face.b == 0 | face.b == n2:
+                        new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                    else:
+                        new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
+                elif vert_del == face.b:
+                    if face.c == 0 | face.c == n2:
+                        new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
+                    else:
+                        new_face = obja.Face(face.c, face.a, patch[-patch.index(face.c)])  
+                elif vert_del == face.c:
+                    if face.a == 0 | face.a == n2:
+                        new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
+                    else:
+                        new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
                 else:
-                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
+                    print("ERREUR !!")
+                    
                 operations.append(('ef', index, face))
                 self.faces[index] = new_face
-            elif vert_del == face.b:
-                if face.c == 0 | face.c == n2:
-                    new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
-                else:
-                    new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
-                operations.append(('ef', index, face))
-                self.faces[index] = new_face
-            else:
-                if face.a == 0 | face.a == n2:
-                    new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
-                else:
-                    new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
-                operations.append(('ef', index, face))
-                self.faces[index] = new_face
+
             
         # supprimer le sommet du milieu du patch        
         operations.append(('av', vert_del, self.vertices[vert_del]))
@@ -234,12 +251,14 @@ def decimation(self):
                 A = np.ones((len(liste_points)+1, 4))
                 # Première ligne initialisée avec le sommet courant
                 A[0, 0:3] = vertex
+                print('liste des vertices du mesh : '+str(self.vertices))
                 # Parcours des points du patch par indice (i) et valeur (l)
                 for (i, l) in enumerate(liste_points):
                     # i-ème ligne initialisée avec les sommets du patch
                     A[i+1, 0:3] = self.vertices[l]
                 # fin parcours des points du patch
                 tAA = A.transpose() @ A
+                print("tAA = "+str(tAA))
 
                 # Calcul des vecteurs propres et valeurs prorpes 
                 valeurs_propres, vecteurs_propres = np.linalg.eig(tAA)
