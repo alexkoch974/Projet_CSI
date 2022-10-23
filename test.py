@@ -33,8 +33,11 @@ class Test(obja.Model):
         while tour < 3:
             print("tour n° " + str(tour) + "\n")
             sommets = decimation(self)
-            (patch, faces) = self.find_patches(sommets)
-            op = trace_Z(self, patch, faces, sommets, op)
+            print(sommets)
+            (patchs, faces) = self.find_patches(sommets)
+            print(patchs)
+            print(faces)
+            op = trace_Z(self, patchs, faces, sommets, op)
             output_model = obja.Output(output, random_color=True)
             
             new_nb_vert = len([i for i in self.vertices if i is not None])
@@ -74,11 +77,11 @@ class Test(obja.Model):
         
         
         op.reverse()
-        print(op)
+        # print(op)
         
         
         for (ty, index, value) in op:
-            print((ty, index, value))
+            # print((ty, index, value))
             if ty == 'av':
                 output_model.add_vertex(index, value)
             elif ty == 'af':
@@ -144,7 +147,6 @@ class Test(obja.Model):
         
         
         # Iterate through the vertices to delete
-        # ----------- TODO : check avec Kuremon pour avoir des index
         for vert_index in vertices_to_delete:   
             
             self.faces_rec.clear()
@@ -156,6 +158,7 @@ class Test(obja.Model):
                     if vert_index in [face.a, face.b, face.c]:
                         # Ajout de la facette courante dans la liste intermédiaire
                         temp_faces_list.append((face,i))
+
             
             # faces_in_the_patches.append(list(temp_faces_list))
 
@@ -164,7 +167,7 @@ class Test(obja.Model):
                 # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0][0].c
                 # Si le sommet courant est le second de la première facette
-            elif vert_index == temp_faces_list[1][0].b: # 1 remplacé par 0 (CP)
+            elif vert_index == temp_faces_list[1][0].b:
                 # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0][0].a
             else:
@@ -216,6 +219,8 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
         # print()
         # print(vertices_to_delete)
         # print()
+        
+        zizi = 0
 
         for j in range(len(faces_in_the_patches[i])):
             (face, index) = faces_in_the_patches[i][j]
@@ -225,28 +230,37 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
                     
                     if patch.index(face.b) == 0 :
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                        zizi = 1
                     elif patch.index(face.b) == n2:
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                        zizi = 2
                     else:
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
+                        zizi = 3
                         
                 elif vert_del == face.b:
                     
                     if patch.index(face.c) == 0 :
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
+                        zizi = 4
                     elif patch.index(face.c) == n2:
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
+                        zizi = 5
                     else:
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.c)])
+                        zizi = 6
                         
                 elif vert_del == face.c:
                     
                     if patch.index(face.a) == 0 :
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
+                        zizi = 7
                     elif patch.index(face.a) == n2:
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
+                        zizi = 8
                     else:
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
+                        zizi = 9
                         
                 else:
                     print("ERREUR !!")
@@ -254,6 +268,7 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
                     
                 operations.append(('ef', index, face))
                 self.faces[index] = new_face
+                            
                             
                 # if new_face.a == new_face.b:
                 #     print('indice de la face dans le patch : '+str(j))
