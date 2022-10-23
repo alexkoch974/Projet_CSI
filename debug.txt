@@ -1,44 +1,24 @@
-Etape 2 :
-
-Sommets à supprimer choisis par la fonction de clément :
-[301, 75, 302]
 
 
 
-Patchs (indices des sommets de contour) trouvés autour de ces sommets :
 
-[[360, 364, 302, 365, 363, 359, 73],                --> sommet 301
-[316, 303, 323, 315, 353],                          --> sommet 75
-[366, 356, 354, 316, 353, 355, 365, 301, 364]]      --> sommet 302
-
-
-
-Ensembles de faces de chacun des patchs 
-
-[[(Face(360, 73, 301), 333), 
-(Face(364, 360, 301), 340), 
-(Face(301, 302, 364), 385), 
-(Face(302, 301, 365), 386),             --> patch autour du sommet 301
-(Face(363, 365, 301), 343), 
-(Face(359, 363, 301), 342), 
-(Face(73, 359, 301), 334)], 
-
-[(Face(75, 316, 353), 377), 
-(Face(316, 75, 303), 389), 
-(Face(323, 303, 75), 414),              --> patch autour du sommet 75
-(Face(75, 315, 323), 390), 
-(Face(315, 75, 353), 379)],
-
- [(Face(366, 364, 302), 341), 
- (Face(302, 356, 366), 384), 
- (Face(354, 356, 302), 380), 
- (Face(354, 302, 316), 381), 
- (Face(302, 353, 316), 383),            --> patch autour du sommet 302
- (Face(302, 355, 353), 382), 
- (Face(355, 302, 365), 387), 
- (Face(302, 301, 365), 386), 
- (Face(301, 302, 364), 385)]]
+[(Face(319, 321, 503),
+34),
+(Face(313, 503, 321),
+39),
+(Face(319, 385, 321),
+282),
+(Face(385, 379, 321),
+283),
+(Face(321, 379, 323),
+291),
+(Face(371, 353, 321),
+350),
+(Face(321, 323, 371),
+355),
+(Face(371, 313, 321),
+359)]
 
 
 
- On voit qu'il y a un problème car il y a des faces qui sont dans deux patchs 
+353 est tout seul !!

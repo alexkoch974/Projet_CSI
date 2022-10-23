@@ -15,6 +15,7 @@ class Test(obja.Model):
     """
         
     faces_rec = []
+    tour = 1
         
     def __init__(self):
         super().__init__()
@@ -27,42 +28,43 @@ class Test(obja.Model):
         # sommets = [75] # patch 76 317 355 303 354 316 pour suzanne
         nb_vert_init = len(self.vertices)
         op = []
-        tour = 1
         
-        # while len(self.vertices)/nb_vert_init >= 0.1:
-        while tour < 3:
-            print("tour n° " + str(tour) + "\n")
+        
+        # while new_nb_vert/nb_vert_init >= 0.1:
+        while self.tour < 20:
+            print("tour n° " + str(self.tour) + "\n")
             sommets = decimation(self)
-            print(sommets)
+            # print(sommets)
             (patchs, faces) = self.find_patches(sommets)
-            print(patchs)
-            print(faces)
+            # print(patchs)
+            # print(faces)
             op = trace_Z(self, patchs, faces, sommets, op)
             output_model = obja.Output(output, random_color=True)
             
             new_nb_vert = len([i for i in self.vertices if i is not None])
             # self.faces = [i for i in self.faces if i is not None]
-            # counter = 0
-            # l = []
-            # for f in self.faces:
-            #     if f.a == f.b:
-            #         counter += 1
-            #         l.append(f)
-            #     if f.a == f.c:
-            #         counter += 1
-            #         l.append(f)
-            #     if f.b == f.c:
-            #         counter += 1
-            #         l.append(f)
-            # if counter != 0:
-            #     print(l)
+            counter = 0
+            l = []
+            for f in self.faces:
+                if f is not None:
+                    if f.a == f.b:
+                        counter += 1
+                        l.append(f)
+                    if f.a == f.c:
+                        counter += 1
+                        l.append(f)
+                    if f.b == f.c:
+                        counter += 1
+                        l.append(f)
+            if counter != 0:
+                print(l)
             
             
             # print("Y a t il des None dans self.vertices ? ")
             # print(any(x is None for x in self.vertices))
             # print("Y a t il des None dans self.faces ? ")
             # print(any(x is None for x in self.faces))
-            tour += 1
+            self.tour += 1
             
                     
 
@@ -100,9 +102,11 @@ class Test(obja.Model):
         un ordre de contour.
         (L'ordre se décide lors de l'appel de la fonction avec le paramètre vert_prec)
         """
-        # print('list_faces : '+str(list_faces))
-        # print('del_vert : '+str(del_vert))
-        # print('vert_prec : '+str(vert_prec))
+        if self.tour == 13:
+            print('list_faces : '+str(list_faces))
+            print('del_vert : '+str(del_vert))
+            print('vert_prec : '+str(vert_prec))
+            print()
         if list_faces == []:
             return []
         else:
@@ -111,7 +115,8 @@ class Test(obja.Model):
                 (f,_) = list_faces[ind]
                 # liste des sommets de la facette courante
                 verts_f = [f.a, f.b, f.c]
-                # print(verts_f)
+                if self.tour == 13:
+                    print(verts_f)
                 # print('--------------------------------------')
                 # si le sommet à supprimer fait parti de la facette courante
                 # et le sommet précédent fait aussi parti de la facette courante
@@ -162,21 +167,28 @@ class Test(obja.Model):
             
             # faces_in_the_patches.append(list(temp_faces_list))
 
+            zizi = 0
 
             if vert_index == temp_faces_list[0][0].a:
                 # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0][0].c
+                zizi = 1
                 # Si le sommet courant est le second de la première facette
-            elif vert_index == temp_faces_list[1][0].b:
+            elif vert_index == temp_faces_list[0][0].b:
                 # le précédent est le dernier de la première facette
                 next_vertex = temp_faces_list[0][0].a
+                zizi = 2
             else:
                 # le précédent est le second de la première facette
                 next_vertex = temp_faces_list[0][0].b
+                zizi = 3
 
             # construit la liste des sommets du patch
-            # print(temp_faces_list)
-            # print('########################################')
+            # if self.tour == 13:
+            #     print(temp_faces_list)
+            #     print(vert_index, next_vertex)
+            #     print(zizi)
+            #     print('########################################')
             patch = self.sort_patch_rec(temp_faces_list, vert_index, next_vertex)
             # print('########################################')
 
@@ -202,10 +214,10 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
         patch = patches[i]
         #supprimer deux faces en face l'une de l'autre
         n2 = math.ceil(len(faces_in_the_patches[i])/2)
-        operations.append(('af', 0, faces_in_the_patches[i][0][0]))
+        operations.append(('af', faces_in_the_patches[i][0][1], faces_in_the_patches[i][0][0]))
         ind_to_del = self.faces.index(faces_in_the_patches[i][0][0])
         self.faces[ind_to_del] = None
-        operations.append(('af', n2, faces_in_the_patches[i][n2][0]))
+        operations.append(('af', faces_in_the_patches[i][n2][1], faces_in_the_patches[i][n2][0]))
         ind_to_del = self.faces.index(faces_in_the_patches[i][n2][0])
         self.faces[ind_to_del] = None
         vert_del = vertices_to_delete[i]        
