@@ -402,7 +402,9 @@ def decimation(self):
                 # ajout du sommet supprimé à la liste des suppressions
                 deleted_vertices.append(index_vertices[indices_tries[i]])
                 # ajout de la liste des voisins qui ne doivent pas être supprimés
-                dont_touch.append(voisins_vertices[indices_tries[i]])
+                for ind in voisins_vertices[indices_tries[i]]:
+                    if ind not in dont_touch:
+                        dont_touch.append(ind)
             # fin sommet courant peut être supprimé
             # passage au sommet suivant
             i += 1
