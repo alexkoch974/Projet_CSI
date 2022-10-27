@@ -309,6 +309,19 @@ class Output:
         ),
             file=self.output
         )
+            
+    def add_face_color(self, index, face):
+        """
+        Adds a face to the model.
+        """
+        self.face_mapping[index] = len(self.face_mapping)
+        print('f {} {} {}'.format(
+            self.vertex_mapping[face.a] + 1,
+            self.vertex_mapping[face.b] + 1,
+            self.vertex_mapping[face.c] + 1,
+        ),
+            file=self.output
+        )
 
         if self.random_color:
             print('fc {} {} {} {}'.format(
