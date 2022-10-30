@@ -210,16 +210,16 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
         patch = patches[i]
         # suppression des 2 facettes opposées (numéro 0 et n/2)
         # il y en a au moins 2 car les patchs contiennent au moins
-        n2 = math.ceil(len(faces_in_the_patches[i])/2)
-        # Ajout de l'opération que TODO
+        n2 = math.ceil(len(faces_in_the_patches[i]) / 2)
+        # Ajout de l'opération d'ajout de facette
         operations.append(('af', 0, faces_in_the_patches[i][0][0]))
-        # Indices des facettes à supprimer
+        # Indices de la facette à supprimer
         ind_to_del = self.faces.index(faces_in_the_patches[i][0][0])
-        # Suppression des facettes concernées
+        # Suppression de la facette concernée
         self.faces[ind_to_del] = None
-        # Ajout de l'opération que TODO
+        # Ajout de l'opération d'ajout de facette
         operations.append(('af', n2, faces_in_the_patches[i][n2][0]))
-        # Indices des facettes à supprimer
+        # Indices de la facette à supprimer
         ind_to_del = self.faces.index(faces_in_the_patches[i][n2][0])
         # Suppression des facettes concernées
         self.faces[ind_to_del] = None
@@ -238,64 +238,80 @@ def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations)
 
         # Pour chaque indice de facette dans le patch courant
         for j in range(len(faces_in_the_patches[i])):
-            # facette courante et son indice dans le patch (TODO CP : c'est à dire)
+            # facette courante et son indice dans le patch
             (face, index) = faces_in_the_patches[i][j]
-            # si la facette de l'indice courant n'est pas vide (TODO CP : c'est à dire)
-            # ce n'est pas une facette qui a déjà été supprimée
+            # si la facette de l'indice courant n'est pas vide
+            # (ce n'est pas une facette qui a déjà été supprimée)
             if self.faces[index] is not None:                   ########## ICI J'AI CHANGE != PAR is not
                 # modifier les n - 2 facettes restantes du patch courant
 
                 # si le sommet à supprimer est le sommet a de la facette
                 if vert_del == face.a:
-                    # si la position dans le contour du patch du sommet b de la facette courante est 0 (TODO CP : c'est à dire)
-                    # il s'agit d'une facette adjacente à la facette 0 du patch
+                    # si la position dans le contour du patch du sommet b de la facette courante est 0
+                    # il s'agit d'un point d'une facette supprimée (la facette 0 du patch)
                     if patch.index(face.b) == 0:
                         # création d'une nouvelle facette à partir des sommets b, c et du
-                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
                         # de c dans le contour
-                        new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
-                    # si la position dans le patch du sommet b de la facette courante est n / 2 (TODO CP : c'est à dire)
-                    # il s'agit d'une facette adjacente à la facette n / 2 du patch
+                        new_face = obja.Face(face.b, face.c, patch[- patch.index(face.c)])
+                    # si la position dans le contour du patch du sommet b de la facette courante est n / 2
+                    # il s'agit d'un point d'une facette supprimée (la facette n / 2 du patch)
                     elif patch.index(face.b) == n2:
                         # création d'une nouvelle facette à partir des sommets b, c et du
-                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
                         # de c dans le contour
-                        new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                        new_face = obja.Face(face.b, face.c, patch[- patch.index(face.c)])
                     # sinon, c'est une facette entre 0 et n / 2 qui n'est pas adjacente
                     else:
                         # création d'une nouvelle facette à partir des sommets b, c et du
-                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
                         # de b dans le contour
-                        new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
+                        new_face = obja.Face(face.b, face.c, patch[- patch.index(face.b)])
 
                 # si le sommet à supprimer est le sommet b de la face
                 elif vert_del == face.b:
-                    # si la position dans le patch du sommet c de la facette courante est 0 (TODO CP : c'est à dire)
+                    # si la position dans le patch du sommet c de la facette courante est 0
+                    # il s'agit d'un point d'une facette supprimée (la facette 0 du patch)
                     if patch.index(face.c) == 0:
-                        # création d'une nouvelle facette à partir des sommets c, a et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets c, a et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de a dans le contour
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
-                    # si la position dans le patch du sommet c de la facette courante est n / 2 (TODO CP : c'est à dire)
+                    # si la position dans le patch du sommet c de la facette courante est n / 2
+                    # il s'agit d'un point d'une facette supprimée (la facette n / 2 du patch).
                     elif patch.index(face.c) == n2:
-                        # création d'une nouvelle facette à partir des sommets b, c et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets c, a et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de a dans le contour
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
                     #
                     else:
-                        # création d'une nouvelle facette à partir des sommets c, a et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets c, a et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de c dans le contour
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.c)])
 
                 # si le sommet à supprimer est le sommet c de la face
                 elif vert_del == face.c:
-                    # si la position dans le patch du sommet a de la facette courante est 0 (TODO CP : c'est à dire)
+                    # si la position dans le patch du sommet a de la facette courante est 0
+                    # il s'agit d'un point d'une facette supprimée (la facette 0 du patch)
                     if patch.index(face.a) == 0:
-                        # création d'une nouvelle facette à partir des sommets a, b et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets a, b et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de b dans le contour
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
-                    # si la position dans le patch du sommet a de la facette courante est n / 2 (TODO CP : c'est à dire)
+                    # si la position dans le patch du sommet a de la facette courante est n / 2
+                    # il s'agit d'un point d'une facette supprimée (la facette n / 2 du patch).
                     elif patch.index(face.a) == n2:
-                        # création d'une nouvelle facette à partir des sommets a, b et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets a, b et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de b dans le contour
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
                     #
                     else:
-                        # création d'une nouvelle facette à partir des sommets a, b et de TODO CP
+                        # création d'une nouvelle facette à partir des sommets a, b et du
+                        # sommet obtenu dans le contour de la facette à partir de l'opposé de l'indice
+                        # de a dans le contour.
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
 
                 # sinon : Ce cas n'est pas possible
