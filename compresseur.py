@@ -12,25 +12,31 @@ from re import A
 
 import numpy as np
 
+# bibliothèque pour manipuler les maillages au format obja
 import obja
 
 
-class Test(obja.Model):
+class Compresseur(obja.Model):
     """
-    A test class that decimates a 3D model with arbitrary triangle meshes.
+    Classe qui hérite de la classe Model de la bibliothèque obja pour représenter un maillage et 
+    fournir une opération de compression.
     """
-        
+
+    # Attribut qui mémorise les facettes composant un patch dans l'ordre du contour    
     faces_rec = []
+    # Attribut qui compte le nombre d'étapes de compression effectuées
     tour = 1
         
     def __init__(self):
         super().__init__()
         
-    def compressionne(self,output):
+    def comprimer(self,output):
         """
-        Compressionne un obj en obja.
+        Comprimer un maillage au format obj en maillage au format obja.
         """
-        op = []  
+
+        # Séquence d'operations pour créer le maillage au format obja
+        opérations = []  
         
         while self.tour < 60:
             # print("tour n° " + str(self.tour) + "\n")
@@ -39,7 +45,7 @@ class Test(obja.Model):
             
             # Etape 2 : Ordonner les patchs et décimer
             (patchs, faces) = self.find_patches(sommets)
-            op = trace_Z(self, patchs, faces, sommets, op)
+            opérations = trace_Z(self, patchs, faces, sommets, opérations)
             
             output_model = obja.Output(output, random_color=True)
 
@@ -49,25 +55,36 @@ class Test(obja.Model):
 
 
         # Après la compression, on sauvegarde l'état le plus compressé
+        # Pour chaque facette contenue dans le maillage
         for (index, face) in enumerate(self.faces):
+            # Si la facette existe
             if face is not None:
-                op.append(('afnc', index, face))
+                # Ajout de l'opération de création de facette
+                opérations.append(('afnc', index, face))
+        # Pour chaque somme contenu dans le maillage
         for (index, vertex) in enumerate(self.vertices):
+            # Si le somme existe
             if vertex is not None:
-                op.append(('av', index, vertex))
+                # Ajout de l'opération de création de sommet
+                opérations.append(('av', index, vertex))
         
-        # On inverse les opérations de compression pour simuler la décompression
-        op.reverse()
+        # Inverse de l'ordre des opérations de compression pour simuler la décompression
+        opérations.reverse()
         
         
         # Ecriture du fichier .obja
-        for (ty, index, value) in op:
+        # Pour chaque opération
+        for (ty, index, value) in opérations:
+            # cas de l'ajout d'un sommet
             if ty == 'av':
                 output_model.add_vertex(index, value)
+            # cas de l'ajout d'une facette
             elif ty == 'afnc':
                 output_model.add_face(index, value)
+            # cas de l'ajout de la couleur d'une facette
             elif ty == 'af':
                 output_model.add_face_color(index, value)
+            # cas de la modification d'une facette
             elif ty == 'ef':
                 output_model.edit_face(index, value)
         
@@ -75,31 +92,43 @@ class Test(obja.Model):
         
     def sort_patch_rec(self, list_faces, del_vert, vert_prec):
         """
-        Fonction récursive qui range dans les faces d'un patch, avant suppression du
-        sommet au centre, et retourne la liste des indices des sommets du patch dans 
-        un ordre de contour.
+        Fonction récursive qui construit le contour du patch dans l'ordre souhaité à partir
+        de la liste des facettes, du sommet au centre du patch à supprimer et du sommet
+        précédent dans le contour.
         (L'ordre se décide lors de l'appel de la fonction avec le paramètre vert_prec)
+        Paramètres :
+            list_faces : facettes du patch
+            del_vert : sommet du patch à supprimer
+            vert_prec : sommet précédent dans l'ordre souhaité pour le contour
         """
+        # une liste vide est ordonnée (liste vide de facettes : cas d'arrêt de la fonction)
         if list_faces == []:
             return []
         else:
-            # Pour chaque face
-            for ind in range(len(list_faces)):
-                (f,_) = list_faces[ind]
-                # liste des sommets de la face courante
-                verts_f = [f.a, f.b, f.c]
-                # si le sommet à supprimer fait parti de la face courante
-                # et le sommet précédent fait aussi parti de la face courante
-                if del_vert in verts_f and vert_prec in verts_f:
-                    # Pour chaque sommet de la face courante
-                    for v in verts_f:
+            # Pour chaque facette qui n'a pas encore été traitée
+            for ind_face in range(len(list_faces)):
+                # valeur de la facette courante
+                (face,_) = list_faces[ind_face]
+                # sommets de la facette courante
+                verts_face = [face.a, face.b, face.c]
+                # si le sommet à supprimer fait partie de la facette courante
+                # remarque : c'est toujours le cas car ce sont les facettes d'un patch et le sommet est au centre du patch
+                # et le sommet précédent fait aussi partie de la facette courante
+                # remarque : cela permet de trouver la facette concernée par cette itération (la suivante)
+                if del_vert in verts_face and vert_prec in verts_face:
+                    # Pour chaque sommet de la facette courante
+                    for vertex in verts_face:
                         # Si le sommet courant n'est pas le sommet à supprimer ni le sommet précédent
-                        if v != del_vert and v != vert_prec:
-                            self.faces_rec.append(list_faces[ind])
-                            # Suppression de la face courante
-                            list_faces.pop(ind)
-                            # Ajout du sommet courant dans le liste des sommets du patch
-                            return [v] + self.sort_patch_rec(list_faces, del_vert, v)
+                        # cela permet d'obtenir le sommet suivant dans le contour
+                        if vertex != del_vert and vertex != vert_prec:
+                            # La facette courante fait partie du patch (conservée dans variable partagée)
+                            # ceci permet d'ordonner les facettes dans le même ordre que le contour
+                            self.faces_rec.append(list_faces[ind_face])
+                            # Suppression de la facette courante
+                            list_faces.pop(ind_face)
+                            # Ajout du sommet courant dans le contour du patch
+                            # ce sommet courant devient le précédent dans l'appel récursif
+                            return [vertex] + self.sort_patch_rec(list_faces, del_vert, vertex)
                     
     def find_patches(self, vertices_to_delete):
         """
@@ -110,45 +139,53 @@ class Test(obja.Model):
         arguments : - liste d'indices de sommets (au milieu des patchs) à supprimer
         
         retour :    - patches : liste des patchs (liste de liste d'indices de sommets)  
-                    - faces_in_the_patches : liste des faces dans les patchs (liste de liste de faces) 
+                    - faces_in_the_patches : liste des faces dans les patchs (liste de listes de facettes) 
         """
+        # liste des patches
         patches = []
-        # liste intermédiaire de faces
+        # liste intermédiaire de facettes concernées par la suppression d'un des sommets
         temp_faces_list = []
-        # faces du patch
+        # facettes qui composent chaque patch : liste de listes de facettes
         faces_in_the_patches = []
         
-        
-        # On itère dans les sommets à supprimer
+        # Pour chaque sommet à supprimer
         for vert_index in vertices_to_delete:   
             
+            # Vide la variable partagée qui mémorise les facettes du patch dans l'ordre
             self.faces_rec.clear()            
-            # On itère sur les faces du modèle et on en conserve certaines temporairement
-            for i in range(len(self.faces)):
-                face = self.faces[i]
+            # Pour chaque indice de facette du maillage
+            for ind_face in range(len(self.faces)):
+                # Valeur de la facette associée à l'indice courant
+                face = self.faces[ind_face]
+                # Si la facette courante existe
                 if face is not None:
+                    # Si le sommet à supprimer est un des sommets de la facette
                     if vert_index in [face.a, face.b, face.c]:
-                        # La face courante possède le sommet à supprimer courant
+                        # La facette courante possède le sommet à supprimer courant
                         # On la conserve avec son indice absolue dans le modèle
-                        temp_faces_list.append((face,i))
+                        temp_faces_list.append((face,ind_face))
             
+            # Le sommet courant à supprimer fait partie de chaque facette de la liste
+            # La première facette de la liste est traitée différement des suivantes
+            # Si le sommet courant est le premier sommet de la première facette
             if vert_index == temp_faces_list[0][0].a:
-                # le précédent est le dernier de la première face
-                next_vertex = temp_faces_list[0][0].c
-                # Si le sommet courant est le second de la première face
+                # le précédent est le dernier de la première facette
+                prec_vertex = temp_faces_list[0][0].c
+            # Si le sommet courant est le second sommet de la première facette
             elif vert_index == temp_faces_list[0][0].b:
-                # le précédent est le dernier de la première face
-                next_vertex = temp_faces_list[0][0].a
+                # le précédent est le premier de la première facette
+                prec_vertex = temp_faces_list[0][0].a
+            # le sommet courant est alors le troisième sommet de la première facette
             else:
-                # le précédent est le second de la première face
-                next_vertex = temp_faces_list[0][0].b
+                # le précédent est le second de la première facette
+                prec_vertex = temp_faces_list[0][0].b
 
-            # On construit la liste des sommets du patch
-            # et on range les faces dans l'ordre trigonométrique
-            patch = self.sort_patch_rec(temp_faces_list, vert_index, next_vertex)
+            # Il faut traiter les autres facettes
+            # et on range les facettes dans le même ordre que le contour du patch
+            contour_patch = self.sort_patch_rec(temp_faces_list, vert_index, prec_vertex)
 
             # ajoute la liste des sommets du patch à la liste des patchs
-            patches.append(patch)
+            patches.append(contour_patch)
             faces_in_the_patches.append(list(self.faces_rec))
             
         return (patches, faces_in_the_patches)
@@ -156,68 +193,117 @@ class Test(obja.Model):
 
 def trace_Z(self, patches, faces_in_the_patches, vertices_to_delete, operations):
     """
-    Fonction qui effectue les modification sur le mesh. Plus précisément supprime les
-    points des milieus de patchs et trace les Z.
+    Fonction qui effectue les modification sur le maillage. Plus précisément, elle supprime les
+    points du centre des patchs puis construit les facettes en Z qui maille le patch sans centre.
     
     arguments : - liste des patchs (liste de liste d'indices de sommets de contour)
-                - liste des faces dans les patchs (liste de liste de tuples (face,indice) )
+                - liste des facettes dans les patchs (liste de liste de tuples (face,indice) )
                 - liste des sommets au milieu des patchs à supprimer (liste d'indices de sommets)
     
-    retour :    - liste des opérations à effectuer (list de string)   
+    retour :    - liste des opérations à effectuer (liste de string)   
     """   
     
     # Dans cette fonction, remplacer les 'afnc' par 'af' pour voir les ajout de faces de chaque 
     # itération de compression en couleur.
     
-    # On itère sur les patchs
-    for i in range(len(patches)):
-        patch = patches[i]
-        vert_del = vertices_to_delete[i]
+    # Pour chaque indice de patch
+    for ind_patch in range(len(patches)):
+        # Patch courant : suite de sommets qui forment le contour du patch
+        patch = patches[ind_patch]
+        # Sommet qui doit être supprimé
+        vert_del = vertices_to_delete[ind_patch]
         
-        # Etape 1 : Suppression des deux faces en face l'une de l'autre
-        n2 = math.ceil(len(faces_in_the_patches[i])/2)
-        operations.append(('afnc', faces_in_the_patches[i][0][1], faces_in_the_patches[i][0][0]))
-        ind_to_del = self.faces.index(faces_in_the_patches[i][0][0])
+        # Etape 1 : Suppression des deux faces symétriques l'une de l'autre par rapport au sommet central
+        # suppression des 2 facettes opposées (numéro 0 et n/2)
+        # il y en a au moins 2 car les patchs contiennent au moins 5 facettes
+        n_sur_2 = math.ceil(len(faces_in_the_patches[ind_patch])/2)
+        # Ajout de l'opération d'ajout de facette non colorée
+        operations.append(('afnc', faces_in_the_patches[ind_patch][0][1], faces_in_the_patches[ind_patch][0][0]))
+        # Indices ndes facettes à supprimer
+        ind_to_del = self.faces.index(faces_in_the_patches[ind_patch][0][0])
+        # Suppression des facettes concernées
         self.faces[ind_to_del] = None
-        operations.append(('afnc', faces_in_the_patches[i][n2][1], faces_in_the_patches[i][n2][0]))
-        ind_to_del = self.faces.index(faces_in_the_patches[i][n2][0])
+        # Ajout de l'opération d'ajout de facette non colorée
+        operations.append(('afnc', faces_in_the_patches[ind_patch][n_sur_2][1], faces_in_the_patches[ind_patch][n_sur_2][0]))
+        # Indices des facettes à supprimer
+        ind_to_del = self.faces.index(faces_in_the_patches[ind_patch][n_sur_2][0])
+        # Suppression des facettes concernées
         self.faces[ind_to_del] = None
             
-        # Etape 2 : Modification des faces restantes du patch pour faire apparaitre le Z
-        for j in range(len(faces_in_the_patches[i])):
-            (face, index) = faces_in_the_patches[i][j]
+        # Etape 2 : Modification des facettes restantes du patch pour faire apparaitre le Z
+        # Pour chaque indice de facette dans le patch courant
+        for ind_face in range(len(faces_in_the_patches[ind_patch])):
+            # facette courante et son indice dans le patch (TODO CP : c'est à dire)
+            (face, index) = faces_in_the_patches[ind_patch][ind_face]
+            # si la facette de l'indice courant n'est pas vide (TODO CP : c'est à dire)
+            # ce n'est pas une facette qui a déjà été supprimée
             if self.faces[index] is not None: 
-                # modifier les n-2 faces restantes                
+                # modifier les n - 2 facettes restantes du patch courant
+
+                # si le sommet à supprimer est le sommet a de la facette           
                 if vert_del == face.a:
-                    
+                    # si la position dans le contour du patch du sommet b de la facette courante est 0
+                    # il s'agit d'une facette adjacente à la facette 0 du patch
                     if patch.index(face.b) == 0 :
+                        # création d'une nouvelle facette à partir des sommets b, c et du
+                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # de c dans le contour
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
-                    elif patch.index(face.b) == n2:
+                    # si la position dans le patch du sommet b de la facette courante est n / 2
+                    # il s'agit d'une facette adjacente à la facette n / 2 du patch                        
+                    elif patch.index(face.b) == n_sur_2:
+                        # création d'une nouvelle facette à partir des sommets b, c et du
+                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # de c dans le contour
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.c)])
+                    # sinon, c'est une facette entre 0 et n / 2 qui n'est pas adjacente
                     else:
+                        # création d'une nouvelle facette à partir des sommets b, c et du
+                        # sommet obtenu dans le contour de la facette à partir de l'indice
+                        # de b dans le contour
                         new_face = obja.Face(face.b, face.c, patch[-patch.index(face.b)])
-                        
+
+                # si le sommet à supprimer est le sommet b de la face
                 elif vert_del == face.b:
-                    
+
+                    # si la position dans le patch du sommet c de la facette courante est 0
+                    # il s'agit d'une facette adjacente à la facette 0 du patch                   
                     if patch.index(face.c) == 0 :
+                        # création d'une nouvelle facette à partir des sommets c, a et d'un sommet symétrique à a
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
-                    elif patch.index(face.c) == n2:
+                    # si la position dans le patch du sommet c de la facette courante est n / 2
+                    # il s'agit d'une facette adjacente à la facette n / 2 du patch
+                    elif patch.index(face.c) == n_sur_2:
+                        # création d'une nouvelle facette à partir des sommets b, c et d'un sommet symétrique à a
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.a)])
+                    #
                     else:
+                        # création d'une nouvelle facette à partir des sommets c, a et d'un sommet symétrique à c
                         new_face = obja.Face(face.c, face.a, patch[-patch.index(face.c)])
-                        
+
+
+                # si le sommet à supprimer est le sommet c de la face
                 elif vert_del == face.c:
-                    
+                    # si la position dans le patch du sommet a de la facette courante est 0
+                    # il s'agit d'une facette adjacente à la facette 0 du patch 
                     if patch.index(face.a) == 0 :
+                        # création d'une nouvelle facette à partir des sommets a, b et d'un sommet symétrique à b
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
-                    elif patch.index(face.a) == n2:
+                    # si la position dans le patch du sommet a de la facette courante est n / 2
+                    # il s'agit d'une facette adjacente à la facette n / 2 du patch
+                    elif patch.index(face.a) == n_sur_2:
+                        # création d'une nouvelle facette à partir des sommets a, b et d'un sommet symétrique à b
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.b)])
+                    #
                     else:
+                        # création d'une nouvelle facette à partir des sommets a, b et d'un sommet symétrique à a
                         new_face = obja.Face(face.a, face.b, patch[-patch.index(face.a)])
-                        
+
+                # sinon : Ce cas n'est pas possible
                 else:
                     print("ERREUR : patch non conforme")
-                    
+
+                # Ajout de l'opération que effacer la face à l'indice
                 operations.append(('ef', index, face))
                 self.faces[index] = new_face
                             
@@ -370,11 +456,11 @@ def main():
     Runs the program on the model given as parameter.
     """
     np.seterr(invalid = 'raise')
-    model = Test()
+    model = Compresseur()
     model.parse_file('example/suzanne.obj')
 
     with open('example/suzanne.obja', 'w') as output:
-        model.compressionne(output)
+        model.comprimer(output)
     
 
 if __name__ == '__main__':
